@@ -1,0 +1,67 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# 3그룹 비교
+```{r setup, include = FALSE}
+library(ggplot2)
+library(ggsignif)
+library(glue)
+```
+## Compare 3 groups
+* geom_sigif의 comparisons에 비교군을 기입하여 내가 원하는 군을 선택할 수 있습니다. 
+
+```{r}
+model <- aov(Sepal.Length ~ Species, data = iris)
+summary(model)
+
+p <- summary(model)[[1]][["Pr(>F)"]][1]
+p
+```
+```{r}
+ggplot(iris, aes(x = Species, y = Sepal.Length)) +
+    geom_boxplot() + 
+    geom_signif(
+        comparisons = list(c("versicolor", "setosa")),
+        map_signif_level = TRUE,
+        y_position = 7.9
+    ) + 
+    geom_signif(
+        comparison = list(c("versicolor", "virginica")),
+        map_signif_level = TRUE,
+        y_position = 8.2 ## 위치를 조금 올려주기 위해서 y position 설정        
+    ) + 
+    geom_signif(
+        comparison = list(c("setosa", "virginica")),
+        map_signif_level = TRUE,
+        y_position = 8.5 ## 위치를 조금 올려주기 위해서 y position 설정        
+    ) +
+    annotate("text", label = glue("p = {format(p, digits = 2)}"), x = 3.3 , y = 9.2) # aov 결과
+
+```
+
+### weighted T.test 사용 (or 다른 test 사용)
+* 여기서는 기존의 t-test를 이용했으나 anno 변수 안에 원하시는 변수는 p-value를 넣으시면 됩니다. 
+```{r}
+library(dplyr)
+
+data = iris %>% filter(Species %in% c("setosa", "versicolor"))
+
+# 원하는 test
+anno <- t.test(data$Sepal.Length ~ data$Species)$p.value
+print(anno)
+```
+
+```{r echo = TRUE}
+# Make plot with custom x and y position of the bracket
+ggplot(data, aes(x = Species, y = Sepal.Width)) +
+  geom_boxplot(position = "dodge") +
+  geom_signif(
+    annotation = formatC(anno, digits = 2), # annotation으로 다른 test 결과 p_value 기입
+    y_position = 5, # y 위치
+    xmin = 1, # x 시작 위치
+    xmax = 2, # x 끝 위치
+    tip_length = c(0.1, 0.25) # 아래로 가는 선 길이 
+  )
+```
+
